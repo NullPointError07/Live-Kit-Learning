@@ -12,10 +12,9 @@ import {
 } from "livekit-client";
 import "./App.css";
 import { useState, useEffect } from "react";
-import VideoComponent from "./components/VideoComponent";
-import AudioComponent from "./components/AudioComponent";
-import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash } from "react-icons/fa"; // Import Icons
 import { useParams } from "react-router-dom";
+import LiveClass from "./components/LiveClass";
+import PreviewScreen from "./components/PreviewScreen";
 
 type TrackInfo = {
   trackPublication: RemoteTrackPublication;
@@ -39,8 +38,6 @@ function configureUrls() {
   }
 }
 
-let accessTokenFromCookies = document.cookie.replace(/(?:(?:^|.*;\s*)accessToken\s*\=\s*([^;]*).*$)|^.*$/, "$1");
-
 function App() {
   const [room, setRoom] = useState<Room | undefined>(undefined);
   const [localVideoTrack, setLocalVideoTrack] = useState<LocalVideoTrack | undefined>(undefined);
@@ -48,10 +45,10 @@ function App() {
   const [remoteTracks, setRemoteTracks] = useState<TrackInfo[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [classDetails, setClassDetails] = useState<any>({});
+  const [teacherDetails, setTeacherDetails] = useState<any>({});
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCameraOn, setIsCameraOn] = useState(true);
   const { classId } = useParams();
-
 
   useEffect(() => {
     startPreview();
@@ -90,33 +87,39 @@ function App() {
   }
 
   async function fetchTeacherDetails() {
-    if (accessTokenFromCookies) {
+    try {
       const response = await fetch(`${import.meta.env.VITE_EK_ACADEMY_TEACHER_PROFILE}`, {
-        method: "POST",
+        method: "GET",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          "x-access-token": `${accessTokenFromCookies}`,
+          // "x-access-token":
+          //   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NzQ1YWE4MGU4ZjdhMjg5NTIzZjRmZTQiLCJ1c2VyVHlwZSI6InRlYWNoZXIiLCJpYXQiOjE3NDA1NDgzOTksImV4cCI6MTc0MDU2MTM5OX0.0tYsvZ1C8A327ZrIbuK8oF5sF5RgUPspPZlEQQ8n5yU",
         },
       });
 
       if (response.status === 200) {
         setIsAuthenticated(true);
-      } else {
-        setIsAuthenticated(false);
+        setTeacherDetails(await response.json());
       }
-    } else {
+    } catch (error) {
       setIsAuthenticated(false);
     }
   }
 
+  console.log("classDetails", classDetails);
+  console.log("teacherDetails", teacherDetails);
+
   async function fetchClassDetails(id: string) {
     try {
-      const response = await fetch(`${import.meta.env.VITE_EK_ACADEMY_LIVE_CLASS_DETAILS}`, {
+      const response = await fetch(`${import.meta.env.VITE_EK_ACADEMY_LIVE_CLASS_DETAILS}?id=${id}`, {
         method: "GET",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          // "x-access-token":
+          //   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NzQ1YWE4MGU4ZjdhMjg5NTIzZjRmZTQiLCJ1c2VyVHlwZSI6InRlYWNoZXIiLCJpYXQiOjE3NDA1NDgzOTksImV4cCI6MTc0MDU2MTM5OX0.0tYsvZ1C8A327ZrIbuK8oF5sF5RgUPspPZlEQQ8n5yU",
         },
-        body: JSON.stringify({ id }),
       });
 
       if (!response.ok) {
@@ -124,7 +127,7 @@ function App() {
       }
 
       const data = await response.json();
-      setClassDetails(data);
+      setClassDetails(data?.data[0]);
     } catch (error) {
       console.error("Error fetching class details:", error);
     }
@@ -193,59 +196,25 @@ function App() {
   return (
     <>
       {!room ? (
-        <div id="join">
-          <div id="join-dialog">
-            <h2>ED ROOM</h2>
-            <h5>Video Meeting By Sheba Innovators</h5>
-
-            {/* Video Preview with Mic & Camera Icons */}
-            <div className="video-preview-container">
-              {localVideoTrack && <VideoComponent track={localVideoTrack} participantIdentity="Preview" local={true} />}
-
-              {/* Overlay Controls */}
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4">
-                <button onClick={toggleCamera} className={`icon-btn ${isCameraOn ? "active" : "off"}`}>
-                  {isCameraOn ? <FaVideo /> : <FaVideoSlash />}
-                </button>
-                <button onClick={toggleMicrophone} className={`icon-btn ${isMicOn ? "active" : "off"}`}>
-                  {isMicOn ? <FaMicrophone /> : <FaMicrophoneSlash />}
-                </button>
-              </div>
-            </div>
-
-            <button className="btn btn-lg btn-success" onClick={() => joinRoom("TestRoom", "User123")}>
-              {isAuthenticated ? "Start Class" : "Authentication Failed"}
-            </button>
-          </div>
-        </div>
+        <PreviewScreen
+          localVideoTrack={localVideoTrack}
+          isCameraOn={isCameraOn}
+          isMicOn={isMicOn}
+          toggleCamera={toggleCamera}
+          toggleMicrophone={toggleMicrophone}
+          joinRoom={joinRoom}
+          isAuthenticated={isAuthenticated}
+          classDetails={classDetails}
+          teacherDetails={teacherDetails}
+        />
       ) : (
-        <div id="room">
-          <div id="room-header">
-            <h2 id="room-title">TestRoom</h2>
-            <button className="btn btn-danger" id="leave-room-button" onClick={leaveRoom}>
-              Leave Room
-            </button>
-          </div>
-
-          <div id="layout-container">
-            {localVideoTrack && <VideoComponent track={localVideoTrack} participantIdentity="You" local={true} />}
-
-            {remoteTracks.map((remoteTrack) =>
-              remoteTrack.trackPublication.kind === "video" ? (
-                <VideoComponent
-                  key={remoteTrack.trackPublication.trackSid}
-                  track={remoteTrack.trackPublication.videoTrack!}
-                  participantIdentity={remoteTrack.participantIdentity}
-                />
-              ) : (
-                <AudioComponent
-                  key={remoteTrack.trackPublication.trackSid}
-                  track={remoteTrack.trackPublication.audioTrack!}
-                />
-              )
-            )}
-          </div>
-        </div>
+        <LiveClass
+          classDetails={classDetails}
+          teacherDetails={teacherDetails}
+          leaveRoom={leaveRoom}
+          localVideoTrack={localVideoTrack}
+          remoteTracks={remoteTracks}
+        />
       )}
     </>
   );

@@ -2,7 +2,6 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { AccessToken, WebhookReceiver } from "livekit-server-sdk";
-import axios from "axios";
 
 const SERVER_PORT = process.env.SERVER_PORT || 6080;
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || "devkey";
@@ -18,42 +17,8 @@ app.use(
   })
 );
 
-// app.options('*', cors());
 app.use(express.json());
 app.use(express.raw({ type: "application/webhook+json" }));
-
-app.post("/check-token", async (req, res) => {
-  const authHeader = req.headers["authorization"];
-  if (!authHeader) {
-    res.status(401).json({ errorMessage: "Authorization header is required" });
-    return;
-  }
-  const accessToken = authHeader.split(" ")[1];
-  let userId = '1234'
-
-  const { classId, className, classStartTime, courseName } = req.body;
-  if (!classId || !className || !classStartTime) {
-    res.status(400).json({ errorMessage: "classId, className, classStartTime and courseName are required" });
-    return;
-  }
-
-  try {
-    // const verifyToken = axios.post("http://localhost:8080/verify-token", {
-    //   accessToken,
-    // });
-    const verifyToken = true;
-
-    if (!verifyToken) {
-      console.log("Invalid token");
-      return res.status(401).json({ errorMessage: "Invalid token" });
-    }
-
-    
-    return res.status(200).json({ classId, userId });
-  } catch (error) {
-    throw new Error("Error verifying token");
-  }
-});
 
 app.post("/token", async (req, res) => {
   const roomName = req.body.roomName;
