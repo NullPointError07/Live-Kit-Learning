@@ -9,6 +9,7 @@ type PreviewScreenProps = {
   toggleMicrophone: () => void;
   joinRoom: (roomName: string, participantName: string) => void;
   isAuthenticated: boolean;
+  authenticating: boolean;
   classDetails: any;
   teacherDetails: any;
 };
@@ -21,6 +22,7 @@ const PreviewScreen = ({
   toggleMicrophone,
   joinRoom,
   isAuthenticated,
+  authenticating,
   classDetails,
   teacherDetails,
 }: PreviewScreenProps) => {
@@ -47,8 +49,12 @@ const PreviewScreen = ({
           </div>
         </div>
 
-        {!isAuthenticated ? (
+        {authenticating ? (
+          <p className="text-gray-500">Authenticating...</p>
+        ) : !isAuthenticated ? (
           <p className="text-red-500">Authentication Failed</p>
+        ) : !classDetails ? (
+          <p className="text-red-500">No classes found</p>
         ) : (
           <button className="btn btn-lg btn-success" onClick={() => joinRoom(classDetails._id, teacherDetails._id)}>
             Start Class

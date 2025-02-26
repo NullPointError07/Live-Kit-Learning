@@ -44,6 +44,7 @@ function App() {
   const [localAudioTrack, setLocalAudioTrack] = useState<LocalAudioTrack | undefined>(undefined);
   const [remoteTracks, setRemoteTracks] = useState<TrackInfo[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authenticating, setAuthenticating] = useState(true);
   const [classDetails, setClassDetails] = useState<any>({});
   const [teacherDetails, setTeacherDetails] = useState<any>({});
   const [isMicOn, setIsMicOn] = useState(true);
@@ -88,22 +89,25 @@ function App() {
 
   async function fetchTeacherDetails() {
     try {
+      setAuthenticating(true);
       const response = await fetch(`${import.meta.env.VITE_EK_ACADEMY_TEACHER_PROFILE}`, {
         method: "GET",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          // "x-access-token":
-          //   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NzQ1YWE4MGU4ZjdhMjg5NTIzZjRmZTQiLCJ1c2VyVHlwZSI6InRlYWNoZXIiLCJpYXQiOjE3NDA1NDgzOTksImV4cCI6MTc0MDU2MTM5OX0.0tYsvZ1C8A327ZrIbuK8oF5sF5RgUPspPZlEQQ8n5yU",
         },
       });
 
       if (response.status === 200) {
         setIsAuthenticated(true);
         setTeacherDetails(await response.json());
+      } else {
+        setIsAuthenticated(false);
       }
     } catch (error) {
       setIsAuthenticated(false);
+    } finally {
+      setAuthenticating(false);
     }
   }
 
@@ -205,6 +209,7 @@ function App() {
           toggleCamera={toggleCamera}
           toggleMicrophone={toggleMicrophone}
           joinRoom={joinRoom}
+          authenticating={authenticating}
           isAuthenticated={isAuthenticated}
           classDetails={classDetails}
           teacherDetails={teacherDetails}
