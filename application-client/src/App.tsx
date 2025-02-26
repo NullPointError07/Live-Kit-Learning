@@ -107,8 +107,8 @@ function App() {
     }
   }
 
-  console.log("classDetails", classDetails);
-  console.log("teacherDetails", teacherDetails);
+  // console.log("classDetails", classDetails);
+  // console.log("teacherDetails", teacherDetails);
 
   async function fetchClassDetails(id: string) {
     try {
@@ -136,6 +136,8 @@ function App() {
   async function joinRoom(roomName: string, participantName: string) {
     const room = new Room();
     setRoom(room);
+
+    console.log("room", room);
 
     room.on(RoomEvent.TrackSubscribed, (_track, publication, participant) => {
       setRemoteTracks((prev) => [
@@ -214,6 +216,10 @@ function App() {
           leaveRoom={leaveRoom}
           localVideoTrack={localVideoTrack}
           remoteTracks={remoteTracks}
+          isCameraOn={isCameraOn}
+          isMicOn={isMicOn}
+          toggleCamera={toggleCamera}
+          toggleMicrophone={toggleMicrophone}
         />
       )}
     </>

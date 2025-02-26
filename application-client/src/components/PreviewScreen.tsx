@@ -47,9 +47,13 @@ const PreviewScreen = ({
           </div>
         </div>
 
-        <button className="btn btn-lg btn-success" onClick={() => joinRoom(classDetails.title, teacherDetails._id)}>
-          {isAuthenticated ? "Start Class" : "Authentication Failed"}
-        </button>
+        {!isAuthenticated ? (
+          <p className="text-red-500">Authentication Failed</p>
+        ) : (
+          <button className="btn btn-lg btn-success" onClick={() => joinRoom(classDetails._id, teacherDetails._id)}>
+            Start Class
+          </button>
+        )}
       </div>
     </div>
   );
