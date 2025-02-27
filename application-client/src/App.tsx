@@ -1,25 +1,10 @@
-import {
-  LocalVideoTrack,
-  LocalAudioTrack,
-  RemoteAudioTrack,
-  RemoteParticipant,
-  RemoteTrack,
-  RemoteTrackPublication,
-  Room,
-  RoomEvent,
-  createLocalTracks,
-  AudioTrack,
-} from "livekit-client";
-import "./App.css";
 import { useState, useEffect } from "react";
+import { Room, RoomEvent } from "livekit-client";
 import { useParams } from "react-router-dom";
 import LiveClass from "./components/LiveClass";
 import PreviewScreen from "./components/PreviewScreen";
-
-type TrackInfo = {
-  trackPublication: RemoteTrackPublication;
-  participantIdentity: string;
-};
+import { MediaProvider, useMedia } from "./context/MediaContext";
+import { updateLiveClassStatus } from "./utils/statusUpdate";
 
 let APPLICATION_SERVER_URL = "";
 let LIVEKIT_URL = "";
@@ -39,53 +24,22 @@ function configureUrls() {
 }
 
 function App() {
+  const { classId } = useParams();
   const [room, setRoom] = useState<Room | undefined>(undefined);
-  const [localVideoTrack, setLocalVideoTrack] = useState<LocalVideoTrack | undefined>(undefined);
-  const [localAudioTrack, setLocalAudioTrack] = useState<LocalAudioTrack | undefined>(undefined);
-  const [remoteTracks, setRemoteTracks] = useState<TrackInfo[]>([]);
+  const [remoteTracks, setRemoteTracks] = useState<any[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authenticating, setAuthenticating] = useState(true);
   const [classDetails, setClassDetails] = useState<any>({});
   const [teacherDetails, setTeacherDetails] = useState<any>({});
-  const [isMicOn, setIsMicOn] = useState(true);
-  const [isCameraOn, setIsCameraOn] = useState(true);
-  const { classId } = useParams();
+
+  const { localVideoTrack, localAudioTrack, isCameraOn, isMicOn, toggleCamera, toggleMicrophone } = useMedia();
 
   useEffect(() => {
-    startPreview();
     fetchTeacherDetails();
     if (classId) {
       fetchClassDetails(classId);
     }
   }, [classId]);
-
-  async function startPreview() {
-    try {
-      const tracks = await createLocalTracks({ audio: true, video: true });
-
-      const videoTrack = tracks.find((track) => track.kind === "video") as LocalVideoTrack;
-      const audioTrack = tracks.find((track) => track.kind === "audio") as LocalAudioTrack;
-
-      if (videoTrack) setLocalVideoTrack(videoTrack);
-      if (audioTrack) setLocalAudioTrack(audioTrack);
-    } catch (error) {
-      console.error("Error accessing media devices:", error);
-    }
-  }
-
-  function toggleCamera() {
-    if (localVideoTrack) {
-      isCameraOn ? localVideoTrack.mute() : localVideoTrack.unmute();
-      setIsCameraOn(!isCameraOn);
-    }
-  }
-
-  function toggleMicrophone() {
-    if (localAudioTrack) {
-      isMicOn ? localAudioTrack.mute() : localAudioTrack.unmute();
-      setIsMicOn(!isMicOn);
-    }
-  }
 
   async function fetchTeacherDetails() {
     try {
@@ -111,9 +65,6 @@ function App() {
     }
   }
 
-  // console.log("classDetails", classDetails);
-  // console.log("teacherDetails", teacherDetails);
-
   async function fetchClassDetails(id: string) {
     try {
       const response = await fetch(`${import.meta.env.VITE_EK_ACADEMY_LIVE_CLASS_DETAILS}?id=${id}`, {
@@ -121,8 +72,6 @@ function App() {
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
-          // "x-access-token":
-          //   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NzQ1YWE4MGU4ZjdhMjg5NTIzZjRmZTQiLCJ1c2VyVHlwZSI6InRlYWNoZXIiLCJpYXQiOjE3NDA1NDgzOTksImV4cCI6MTc0MDU2MTM5OX0.0tYsvZ1C8A327ZrIbuK8oF5sF5RgUPspPZlEQQ8n5yU",
         },
       });
 
@@ -140,8 +89,6 @@ function App() {
   async function joinRoom(roomName: string, participantName: string) {
     const room = new Room();
     setRoom(room);
-
-    console.log("room", room);
 
     room.on(RoomEvent.TrackSubscribed, (_track, publication, participant) => {
       setRemoteTracks((prev) => [
@@ -167,8 +114,11 @@ function App() {
       if (localAudioTrack) {
         await room.localParticipant.publishTrack(localAudioTrack);
       }
+
+      await updateLiveClassStatus(roomName, "ongoing");
     } catch (error) {
       console.log("Error connecting to the room:", (error as Error).message);
+      await updateLiveClassStatus(roomName, "scheduled");
       await leaveRoom();
     }
   }
@@ -176,9 +126,6 @@ function App() {
   async function leaveRoom() {
     await room?.disconnect();
     setRoom(undefined);
-    setLocalVideoTrack(undefined);
-    setLocalAudioTrack(undefined);
-    setRemoteTracks([]);
   }
 
   async function getToken(roomName: string, participantName: string) {
@@ -213,6 +160,7 @@ function App() {
           isAuthenticated={isAuthenticated}
           classDetails={classDetails}
           teacherDetails={teacherDetails}
+          updateLiveClassStatus={updateLiveClassStatus}
         />
       ) : (
         <LiveClass

@@ -59,6 +59,9 @@ const LiveClass = ({
         <button onClick={toggleMicrophone} className={`icon-btn ${isMicOn ? "active" : "off"}`}>
           {isMicOn ? <FaMicrophone /> : <FaMicrophoneSlash />}
         </button>
+        <button className="btn btn-danger" id="leave-room-button" onClick={leaveRoom}>
+          Leave Room
+        </button>
       </div>
     </div>
   );

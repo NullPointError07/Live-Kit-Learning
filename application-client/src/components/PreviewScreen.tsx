@@ -12,6 +12,7 @@ type PreviewScreenProps = {
   authenticating: boolean;
   classDetails: any;
   teacherDetails: any;
+  updateLiveClassStatus: (id: string, status: string) => void;
 };
 
 const PreviewScreen = ({
@@ -25,6 +26,7 @@ const PreviewScreen = ({
   authenticating,
   classDetails,
   teacherDetails,
+  updateLiveClassStatus,
 }: PreviewScreenProps) => {
   return (
     <div id="join">
@@ -56,7 +58,13 @@ const PreviewScreen = ({
         ) : !classDetails ? (
           <p className="text-red-500">No classes found</p>
         ) : (
-          <button className="btn btn-lg btn-success" onClick={() => joinRoom(classDetails._id, teacherDetails._id)}>
+          <button
+            className="btn btn-lg btn-success"
+            onClick={() => {
+              joinRoom(classDetails._id, teacherDetails._id);
+              updateLiveClassStatus(String(classDetails._id), "starting");
+            }}
+          >
             Start Class
           </button>
         )}
